@@ -2,13 +2,15 @@ package frc.robot.Mechanisms;
 
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
+import edu.wpi.first.math.kinematics.SwerveDriveOdometry;
+import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import frc.robot.Robot.Constants;
 import frc.robot.Robot.Robot;
 
 public class SwerveSubsystem {
     
-    private final SwerveModule frontLeft = new SwerveModule(
+    public final static SwerveModule frontLeft = new SwerveModule(
     Constants.kFLDriveMotorPort, 
     Constants.kFLTurningMotorPort, 
     Constants.kFLDriveEncoderReversed, 
@@ -17,7 +19,7 @@ public class SwerveSubsystem {
     Constants.kFLAbsoluteEncoderOffsetRad, 
     Constants.kFLAbsoluteEncoderReversed);
 
-    private final SwerveModule frontRight = new SwerveModule(
+    public final static SwerveModule frontRight = new SwerveModule(
     Constants.kFRDriveMotorPort, 
     Constants.kFRTurningMotorPort, 
     Constants.kFRDriveEncoderReversed, 
@@ -26,7 +28,7 @@ public class SwerveSubsystem {
     Constants.kFRAbsoluteEncoderOffsetRad, 
     Constants.kFRAbsoluteEncoderReversed);
 
-    private final SwerveModule backLeft = new SwerveModule(
+    public final static SwerveModule backLeft = new SwerveModule(
     Constants.kBLDriveMotorPort, 
     Constants.kBLTurningMotorPort, 
     Constants.kBLDriveEncoderReversed, 
@@ -35,7 +37,7 @@ public class SwerveSubsystem {
     Constants.kBLAbsoluteEncoderOffsetRad, 
     Constants.kBLAbsoluteEncoderReversed);
 
-    private final SwerveModule backRight = new SwerveModule(
+    public final static SwerveModule backRight = new SwerveModule(
     Constants.kBRDriveMotorPort, 
     Constants.kBRTurningMotorPort, 
     Constants.kBRDriveEncoderReversed, 
@@ -44,13 +46,14 @@ public class SwerveSubsystem {
     Constants.kBRAbsoluteEncoderOffsetRad, 
     Constants.kBRAbsoluteEncoderReversed);
 
-    public static double getHeading(){
-        return Math.IEEEremainder(Robot.navx.getAngle(), 360);
-    }
+    
+    
+    
+    
 
-    public Rotation2d geRotation2d(){
-        return Rotation2d.fromDegrees(getHeading());
-    }
+    
+
+    
 
     public void stopModules(){
         frontLeft.stop();

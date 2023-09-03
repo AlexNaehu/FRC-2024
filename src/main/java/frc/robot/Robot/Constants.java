@@ -2,6 +2,7 @@ package frc.robot.Robot;
 
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
+import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.math.util.Units;
 
 public class Constants {
@@ -25,11 +26,13 @@ public class Constants {
         // Distance between right and left wheels
     public static final double kWheelBase = Units.inchesToMeters(25.5);
         // Distance between front and back wheels
-    public static final SwerveDriveKinematics kDriveKinematics = new SwerveDriveKinematics(
-                new Translation2d(kWheelBase / 2, -kTrackWidth / 2), //FL SwerveModule Position (relative to physical center of robot)
-                new Translation2d(kWheelBase / 2, kTrackWidth / 2), //FR SwerveModule Position (relative to physical center of robot)
-                new Translation2d(-kWheelBase / 2, -kTrackWidth / 2), //BL SwerveModule Position (relative to physical center of robot)
-                new Translation2d(-kWheelBase / 2, kTrackWidth / 2)); //BR SwerveModule Position (relative to physical center of robot)
+
+    public static final Translation2d FLPose = new Translation2d(kWheelBase / 2, -kTrackWidth / 2); //FL SwerveModule Position (relative to physical center of robot)
+    public static final Translation2d FRPose = new Translation2d(kWheelBase / 2, kTrackWidth / 2); //FR SwerveModule Position (relative to physical center of robot)
+    public static final Translation2d BLPose = new Translation2d(-kWheelBase / 2, -kTrackWidth / 2); //BL SwerveModule Position (relative to physical center of robot)
+    public static final Translation2d BRPose = new Translation2d(-kWheelBase / 2, kTrackWidth / 2); //BR SwerveModule Position (relative to physical center of robot)
+
+    public static final SwerveDriveKinematics kDriveKinematics = new SwerveDriveKinematics(FLPose, FRPose, BLPose, BRPose);
         
 
     //Front Left Swerve Module
@@ -80,4 +83,19 @@ public class Constants {
     //Acceleration Slew Limiters (SwerveDrive)
     public static final double MaxAccelerationUnitsPerSecond = 3;
     public static final double MaxAngularAccelerationUnitsPerSecond = 3;
-}
+    public static final double kMaxAngularSpeedRadiansPerSecond = kPhysicalMaxAngularSpeedRadiansPerSecond / 10;
+    public static final double kMaxAngularAccelerationRadiansPerSecondSquared = Math.PI / 4;
+
+    //Auton Swerve PID Limiters
+    public static final double kPXController = 1.5;
+        public static final double kPYController = 1.5;
+        public static final double kPRotController = 3;
+
+        
+
+        public static final TrapezoidProfile.Constraints kRotControllerConstraints = //
+                new TrapezoidProfile.Constraints(
+                        kMaxAngularSpeedRadiansPerSecond,
+                        kMaxAngularAccelerationRadiansPerSecondSquared);
+    }
+

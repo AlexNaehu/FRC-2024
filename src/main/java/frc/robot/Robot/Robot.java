@@ -20,7 +20,11 @@ import edu.wpi.first.cameraserver.CameraServer;
 import edu.wpi.first.cscore.UsbCamera;
 import edu.wpi.first.cscore.VideoMode.PixelFormat;
 import edu.wpi.first.math.filter.SlewRateLimiter;
+import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
+import edu.wpi.first.math.kinematics.SwerveDriveOdometry;
+import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 //import edu.wpi.first.math.kinematics.DifferentialDriveOdometry;
 import edu.wpi.first.net.PortForwarder;
@@ -93,6 +97,9 @@ public class Robot extends TimedRobot
   private SlewRateLimiter yLimiter;
   private SlewRateLimiter rotLimiter;
 
+  private SwerveDriveOdometry odometer;
+  private SwerveModulePosition[] positions;
+
   
 
   //private DifferentialDriveOdometry odometry;
@@ -131,7 +138,14 @@ public class Robot extends TimedRobot
 
     swerveSubsystem = new SwerveSubsystem();
 
-    //odometry = new DifferentialDriveOdometry(gyro.getRotation2d(), leftEncoder.getDistance(), rightEncoder.getDistance(), new Pose2d(5.0, 13.5, new Rotation2d()));
+    positions = new SwerveModulePosition[] {
+      SwerveSubsystem.frontLeft.getPosition(), 
+      SwerveSubsystem.frontRight.getPosition(), 
+      SwerveSubsystem.backLeft.getPosition(), 
+      SwerveSubsystem.backRight.getPosition()
+    }; //UNSURE}
+
+    odometer = new SwerveDriveOdometry(Constants.kDriveKinematics, new Rotation2d(0), positions);
     
     xLimiter = new SlewRateLimiter(Constants.MaxAccelerationUnitsPerSecond);
     yLimiter = new SlewRateLimiter(Constants.MaxAccelerationUnitsPerSecond);
@@ -199,7 +213,6 @@ public class Robot extends TimedRobot
     Cam.setResolution(320, 240);
     
     //Sensors
-    SmartDashboard.putNumber("Robot Orientation", SwerveSubsystem.getHeading());
     SmartDashboard.putNumber("Roll", navx.getRoll());
    
     
@@ -235,8 +248,13 @@ public class Robot extends TimedRobot
     SmartDashboard.putNumber("Intake: Right Power", Intake.getRightRollerPower());
 
   
-
-
+    //Odometer
+    odometer.update(getRotation2d(), new SwerveModulePosition[] {
+      SwerveSubsystem.frontLeft.getPosition(), SwerveSubsystem.frontRight.getPosition(),
+      SwerveSubsystem.backLeft.getPosition(), SwerveSubsystem.backRight.getPosition()
+    });
+    SmartDashboard.putNumber("Robot Heading", getHeading());
+    SmartDashboard.putString("Robot Location", getPose().getTranslation().toString());
 
     //double targetOffsetAngle_Vertical = ty.getDouble(0.0);
 
@@ -346,7 +364,7 @@ public class Robot extends TimedRobot
         rotSpeed = rotLimiter.calculate(rotSpeed) * Constants.kTeleDriveMaxAngularSpeedRadiansPerSecond;
 
         // 4. Construct desired chassis speeds
-        ChassisSpeeds chassisSpeeds = ChassisSpeeds.fromFieldRelativeSpeeds(xSpeed, ySpeed, rotSpeed, swerveSubsystem.geRotation2d());
+        ChassisSpeeds chassisSpeeds = ChassisSpeeds.fromFieldRelativeSpeeds(xSpeed, ySpeed, rotSpeed, getRotation2d());
         //(Field's Perspective)
 
         //5. Convert chassis speeds to individual module states
@@ -497,6 +515,22 @@ public class Robot extends TimedRobot
     arm.setPivotTargetAngle(arm.getPivotAngle());
 
   }
+
+  public Pose2d getPose() {
+    return odometer.getPoseMeters();
+  }
+
+  public void resetOdometry(Pose2d pose){
+    odometer.resetPosition(getRotation2d(), positions, pose);
+  }
+
+  public static double getHeading(){
+    return Math.IEEEremainder(Robot.navx.getAngle(), 360);
+}
+
+public static Rotation2d getRotation2d(){
+    return Rotation2d.fromDegrees(getHeading());
+}
 
   
 
