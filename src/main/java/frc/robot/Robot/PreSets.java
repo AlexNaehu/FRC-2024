@@ -19,7 +19,7 @@ package frc.robot.Robot;
 public class PreSets
 {
 
-    
+    /*
    
     private static double NEUTRAL_PIVOT_ANGLE = 119.0;// 0.0 angle is at straight verticle down, have a button for manual to return the arm to verticle, have auton
                                                     // lower the arm to 0.0 before it drives to the charging station
@@ -42,70 +42,10 @@ public class PreSets
 
     private static double LVL_1_BALL_PIVOT_ANGLE = 143.0; //Doubles as the travel angle, rename to "travel angle"
 
-
+    */
     
     
     
-    public static void setPosition(double pivotTargetAngle)
-    {
-        Robot.arm.setPivotTargetAngle(pivotTargetAngle);
-        Robot.arm.setArmTargetHit(false);
-    }
-
-    public static void neutralPivotAngle()
-    {
-        //Timer.delay(0.3);
-        Robot.arm.setPivotTargetAngle(NEUTRAL_PIVOT_ANGLE);
-        Robot.arm.setArmTargetHit(false);  
-    }
-
-    /*
-     * 
-     *  Positions for picking up cargo
-     * 
-     */
     
-    public static void cargoPickUp()
-    {
-        //Timer.delay(0.3);
-        Robot.arm.setPivotTargetAngle(PICKUP_PIVOT_ANGLE);
-        Robot.arm.setArmTargetHit(false);  
-    }
-
-    public static void hatchPickUp() 
-    {
-        //Timer.delay(0.3);
-        Robot.arm.setPivotTargetAngle(HATCH_PICKUP_PIVOT_ANGLE); //incase we need a different angle for manually adding game pieces to the field via hatch
-        Robot.arm.setArmTargetHit(false);
-    }
-
-    /*
-     * 
-     *  Positions for placing cargo in different shelf levels
-     * 
-     */
-
-    public static void lvl3RocketBall()
-    {
-        //Timer.delay(0.3);
-        Robot.arm.setPivotTargetAngle(LVL_3_BALL_PIVOT_ANGLE);
-        Robot.arm.setArmTargetHit(false);
-    }
-
-    public static void lvl2RocketBall()
-    {
-        //Timer.delay(0.3);
-        Robot.arm.setPivotTargetAngle(LVL_2_BALL_PIVOT_ANGLE);
-        Robot.arm.setArmTargetHit(false);
-    }
-
-    public static void lvl1RocketBall()
-    {
-        //Timer.delay(0.3);
-        Robot.arm.setPivotTargetAngle(LVL_1_BALL_PIVOT_ANGLE);
-        Robot.arm.setArmTargetHit(false);
-    }
-
-
    
 }

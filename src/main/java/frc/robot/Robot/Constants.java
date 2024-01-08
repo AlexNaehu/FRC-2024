@@ -6,6 +6,21 @@ import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.math.util.Units;
 
 public class Constants {
+
+    public static final double INVALID_Speed = 8300; //max limit rpm for Sparkmax 775
+
+
+
+
+
+
+
+
+
+
+
+
+    //Swerve Stuff
     public static final double kWheelDiameterMeters = Units.inchesToMeters(4); //guess
     public static final double kDriveMotorGearRatio = 1 / 5.8462; //guess
     public static final double kTurningMotorGearRatio = 1 / 18.0; //guess

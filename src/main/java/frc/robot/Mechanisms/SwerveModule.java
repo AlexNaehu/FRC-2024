@@ -1,10 +1,11 @@
 package frc.robot.Mechanisms;
 
 
+//Debating between using SDS mk4i Prebuild or West Coast Products Swerve X
 
-
-import com.revrobotics.CANEncoder;
+//import com.revrobotics.CANEncoder;
 import com.revrobotics.CANSparkMax;
+import com.revrobotics.RelativeEncoder;
 import com.revrobotics.CANSparkMaxLowLevel.MotorType;
 
 import edu.wpi.first.math.controller.PIDController;
@@ -20,8 +21,8 @@ public class SwerveModule {
     private final CANSparkMax driveMotor;
     private final CANSparkMax turningMotor;
 
-    private final CANEncoder driveEncoder;
-    private final CANEncoder turningEncoder;
+    private final RelativeEncoder driveEncoder;
+    private final RelativeEncoder turningEncoder;
 
     private final PIDController turningPIDController;
 
@@ -42,7 +43,7 @@ public class SwerveModule {
             this.absoluteEncoderReversed = absoluteEncoderReversed;
             absoluteEncoder = new AnalogInput(absoluteEncoderID);
 
-            driveMotor = new CANSparkMax(absoluteEncoderID, MotorType.kBrushless);
+            driveMotor = new CANSparkMax(absoluteEncoderID, MotorType.kBrushless); //Check that I was supposed to use absoluteEncoderID and not driveMotorID
             turningMotor = new CANSparkMax(turningMotorID, MotorType.kBrushless);
 
             driveMotor.setInverted(driveMotorReversed);

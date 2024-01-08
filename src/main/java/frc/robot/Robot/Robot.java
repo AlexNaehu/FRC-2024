@@ -43,6 +43,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.robot.Autonomous.AutonPaths;
 import frc.robot.Mechanisms.Arm;
+import frc.robot.Mechanisms.Hook;
 import frc.robot.Mechanisms.Intake;
 import frc.robot.Mechanisms.SwerveSubsystem;
 //import frc.robot.Mechanisms.DriveTrain;
@@ -64,6 +65,7 @@ public class Robot extends TimedRobot
   //public static DriveTrain  driveTrain;
   public static Intake        Intake;
   public static SensorObject    sensor;
+  public static Hook hook;
 
   private UsbCamera Cam;
 
@@ -91,6 +93,7 @@ public class Robot extends TimedRobot
   private String m_autoSelected;
   private final SendableChooser<String> m_chooser = new SendableChooser<>();
 
+  public static Timer timer;
   public static Timer autonClock;
 
   private SlewRateLimiter xLimiter;
@@ -100,7 +103,11 @@ public class Robot extends TimedRobot
   private SwerveDriveOdometry odometer;
   private SwerveModulePosition[] positions;
 
-  
+  private boolean aimbotEnabled;
+  private double kAimP = -0.000005f;  //may need to calibrate kAimP or min_command if aiming causes occilation
+  private double min_command = 0.000005f;
+  private double heading_error;
+  private double steering_adjust;
 
   //private DifferentialDriveOdometry odometry;
 
@@ -130,6 +137,8 @@ public class Robot extends TimedRobot
     Intake = new Intake();
   
     sensor = new SensorObject();
+
+    hook = new Hook();
 
     navx = new AHRS();
 
@@ -166,10 +175,10 @@ public class Robot extends TimedRobot
     *-------------------------------------------------------------------------*/
     
     navx.reset();
-
-    arm.setPivotTargetAngle(arm.getPivotAngle());
     
-    arm.pivotPID();
+    //arm.pivotPID();
+
+    Intake.flywheelPID();
     
                                                                                                                                                                                                                                                                                                                                                                                        
     //driveTrain.coneAimPID();
@@ -177,7 +186,7 @@ public class Robot extends TimedRobot
     //sensor.sensorObject(); //def cant use bc of image processing load on roboRio load
 
 
-    var timer = new Timer();
+    timer = new Timer();
     timer.start();
 
     autonClock = new Timer(); //starts in autonInit()
@@ -230,16 +239,18 @@ public class Robot extends TimedRobot
     SmartDashboard.putNumber("Cube Left Command", driveTrain.cube_left_command);
     SmartDashboard.putNumber("Cube Right Command", driveTrain.cube_right_command);
     */
-    
+    SmartDashboard.putBoolean("Aimbot Enabled", aimbotEnabled);
+    SmartDashboard.putNumber("Aimbot Heading Error", heading_error);
+    SmartDashboard.putNumber("Aimbot PID Power", steering_adjust);
+
+
     //Arm          
 
     
-    //SmartDashboard.putBoolean("Arm Target Hit", arm.armTargetHit);
-    SmartDashboard.putNumber("PIVOT: Target Angle", arm.getPivotTargetAngle());
+    SmartDashboard.putBoolean("Arm Target Hit", arm.armTargetHit);
+    //SmartDashboard.putNumber("PIVOT: Target Angle", arm.getPivotTargetAngle());
     SmartDashboard.putNumber("PIVOT: Encoder Voltage", arm.armPivotEnc.getVoltage());
     SmartDashboard.putNumber("PIVOT: Encoder Angle", arm.getPivotAngle());
-    SmartDashboard.putNumber("Right Arm Angler Temperature", arm.getArmTemp(24));
-    SmartDashboard.putNumber("Left Arm Angler Temperature", arm.getArmTemp(28));
     
 
     //Intake
@@ -289,7 +300,7 @@ public class Robot extends TimedRobot
     m_autoSelected = m_chooser.getSelected();
     System.out.println("Auto selected: " + m_autoSelected);
 
-    initializeRobotPositions();
+    //initializeRobotPositions();
 
     autonClock.reset();
     autonClock.start();
@@ -328,7 +339,7 @@ public class Robot extends TimedRobot
   public void teleopInit() 
   {
     autonClock.stop();
-    initializeRobotPositions();
+    //initializeRobotPositions();
 
   }
 
@@ -343,9 +354,19 @@ public class Robot extends TimedRobot
 
   private void robotControls()
   {
+    
+    // AIMBOT TOGGLE // 1
+    if (aimbotEnabled) {
+      heading_error = -((SmartDashboard.getNumber("Center X", 0.0))+320);
+      steering_adjust = 0.0;
+
+      if (Math.abs(heading_error) > 1.0) {
+          steering_adjust = kAimP * heading_error + min_command;
+      }
+
 
     /*--------------------------------------------------------------------------
-    *  DriveBase Movement - Manual Control (1)
+    *  DriveBase Movement - Manual/ Aimbot Control (1)
     *-------------------------------------------------------------------------*/
     
         // 1. Get real-time joystick inputs
@@ -365,7 +386,12 @@ public class Robot extends TimedRobot
 
         // 4. Construct desired chassis speeds
         ChassisSpeeds chassisSpeeds = ChassisSpeeds.fromFieldRelativeSpeeds(xSpeed, ySpeed, rotSpeed, getRotation2d());
-        //(Field's Perspective)
+        //(Field's Perspective, "North" is the field's North)
+
+        if (aimbotEnabled){
+          // Adjust only the rotational component for swerve drive
+          chassisSpeeds = new ChassisSpeeds(0, 0, steering_adjust);
+        }
 
         //5. Convert chassis speeds to individual module states
         SwerveModuleState[] moduleStates = Constants.kDriveKinematics.toSwerveModuleStates(chassisSpeeds);
@@ -381,140 +407,81 @@ public class Robot extends TimedRobot
     *-------------------------------------------------------------------------*/
     
     
- 
+
+      
+  }
+
+
     /*--------------------------------------------------------------------------
-    *  Intake Movement - Manual Control (1)
+    *  Intake - Manual Control (1)
+    *-------------------------------------------------------------------------*/
+ 
+    if(controller1.getLeftBumper() && controller1.getRightTriggerAxis()<0.05) //suck in
+    {
+      Intake.setIntake(0.3); // LEFT BUMPER // 1
+    }
+    else if(controller1.getRightBumper() && controller1.getRightTriggerAxis()<0.05) //shoot out (not really shoot just drop)
+    {
+      Intake.setIntake(-0.3); // RIGHT BUMPER // 1
+    }
+    else{
+      Intake.setIntake(0.0);//Stop Motors
+    }
+
+    /*--------------------------------------------------------------------------
+    *  Output (Flywheel) - Manual Control (1)
     *-------------------------------------------------------------------------*/
     
     if(controller1.getLeftTriggerAxis()<0.05 && controller1.getRightTriggerAxis()>0.05)
     {
-      Intake.output(controller1.getRightTriggerAxis()); // RIGHT TRIGGER // 1
-    }
-    else if (controller1.getLeftTriggerAxis() > 0.05 && controller1.getRightTriggerAxis() < 0.05)
-    {
-      Intake.intake(controller1.getLeftTriggerAxis()); // LEFT TRIGGER // 1
+      Intake.setFeeder(0.3);
+      Intake.setTargetSpeed(3000); // RIGHT TRIGGER // 1
     }
     else
     {
-      Intake.output(0.0); //Stop Motor
+      Intake.setFeeder(0);
+      Intake.setTargetSpeed(0.0); //Stop Motors
     }
     
     /*--------------------------------------------------------------------------
     *  Arm Movement - Manual Control (1)
     *-------------------------------------------------------------------------*/
-
-    if (controller1.getRightBumperPressed()) // RIGHT BUMPER // 1 // Maybe do getRightBumper()
-    {
-      arm.increaseTargetAngle();
-      //Arm.testMotorsUp();
-    }
-
-    /*
-     * if(controller1.getRightBumper())
-    {
-      arm.increaseTargetAngle();
-    }
-    else if (controller1.getLeftBumper())
-    {
-      arm.decreaseTargetAngle();
-    }
-    else
-    {
-      Intake.closeIntake(0.0); //Stop Motor
-    }
-     */
-
-    if (controller1.getLeftBumperPressed()) // LEFT BUMPER // 1
-    {
-      arm.decreaseTargetAngle();
-      //Arm.testMotorsDown();
-    }
     
+    if (controller1.getYButton() && !(controller1.getAButton())){
+      arm.armUp();
+      arm.setArmTargetHit(true);
+    }
+    else if (controller1.getAButton() && !(controller1.getYButton())){
+      arm.armDown();
+      arm.setArmTargetHit(true);
+    }
+    else{
+      arm.setArmTargetHit(false);
+    }
+
 
     /*--------------------------------------------------------------------------
-    *  Brake Movement - Presets (2)
+    *  Hook - Presets (2)
     *-------------------------------------------------------------------------*/
      
     
 
     /*-----------------------------------------------------------------------
-    *  Out of Deadband - Manual Control (2)
+    *  Aimbot - Manual Control (1)
     *----------------------------------------------------------------------*/
-       
-       /* 
-     if (controller2.getRightTriggerAxis()>RIGHT_DEADBAND_THRESHOLD)
-      pThr = controller2.getRightTriggerAxis();
-    if (controller2.getLeftTriggerAxis()>LEFT_DEADBAND_THRESHOLD)
-      pThr = (controller2.getLeftTriggerAxis()*0.2);
-
-    if(Math.abs(pThr) > LEFT_DEADBAND_THRESHOLD)
-    {
-      armPIDState = false;
-      arm.setPivotTargetAngle(Constants.INVALID_ANGLE);
-      arm.pivotArm(pThr);
-    }
-    else 
-    {
-      if(armPIDState == false)
-      {
-        arm.setPivotTargetAngle(arm.getPivotAngle());
-        armPIDState = true;
-      } 
-    }
     
-      */
-    
-        
-    /*--------------------------------------------------------------------------
-    *  Aux Controller - Preset Arm Positions (2)
-    *-------------------------------------------------------------------------*/
-      
-    if(controller2.getStartButton()) // START BUTTON // 2
-    {
-      PreSets.neutralPivotAngle();
+    if (controller1.getLeftTriggerAxis()>0.05){
+      aimbotEnabled = true; // LEFT TRIGGER // 1
     }
-
-    if(controller2.getRightBumper()) // BACK BUTTON // 2
-    {
-      PreSets.hatchPickUp();
+    else{
+      aimbotEnabled = false;
     }
-
-    if(controller2.getAButton()) // A BUTTON // 2
-    {
-      PreSets.cargoPickUp();
-    }
-
-    /*--------------------------------------------------------------------------
-    *  Aux Controller - Preset Scoring Positions (2)
-    *-------------------------------------------------------------------------*/
-     
-    if(controller2.getYButton())
-    {
-      PreSets.lvl3RocketBall(); // Y BUTTON // 2
-    }
-
-    if(controller2.getXButton())
-    {
-      PreSets.lvl2RocketBall(); // X BUTTON // 2
-    }
-
-    if(controller2.getBButton())
-    {
-      PreSets.lvl1RocketBall(); // B BUTTON // 2
-    }
-
-    
     
 
   } //End of robot controlls
 
 
 
-  private void initializeRobotPositions()
-  {
-    arm.setPivotTargetAngle(arm.getPivotAngle());
-
-  }
 
   public Pose2d getPose() {
     return odometer.getPoseMeters();
