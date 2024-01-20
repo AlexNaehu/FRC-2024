@@ -41,6 +41,7 @@ import edu.wpi.first.wpilibj.XboxController;
 //import frc.robot.Autonomous.Turn;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+
 import frc.robot.Autonomous.AutonPaths;
 import frc.robot.Mechanisms.Arm;
 import frc.robot.Mechanisms.Hook;
@@ -75,7 +76,7 @@ public class Robot extends TimedRobot
 
   //private boolean armPIDState = false;
 
-  private SwerveSubsystem swerveSubsystem;
+  public static SwerveSubsystem swerveSubsystem;
 
   public static AHRS navx;
   
@@ -100,7 +101,7 @@ public class Robot extends TimedRobot
   private SlewRateLimiter yLimiter;
   private SlewRateLimiter rotLimiter;
 
-  private SwerveDriveOdometry odometer;
+  private static SwerveDriveOdometry odometer;
   private SwerveModulePosition[] positions;
 
   private boolean aimbotEnabled;
@@ -152,7 +153,7 @@ public class Robot extends TimedRobot
       SwerveSubsystem.frontRight.getPosition(), 
       SwerveSubsystem.backLeft.getPosition(), 
       SwerveSubsystem.backRight.getPosition()
-    }; //UNSURE}
+    }; //UNSURE
 
     odometer = new SwerveDriveOdometry(Constants.kDriveKinematics, new Rotation2d(0), positions);
     
@@ -260,14 +261,15 @@ public class Robot extends TimedRobot
 
   
     //Odometer
-    odometer.update(getRotation2d(), new SwerveModulePosition[] {
+    odometer.update(SwerveSubsystem.getRotation2d(), new SwerveModulePosition[] {
       SwerveSubsystem.frontLeft.getPosition(), SwerveSubsystem.frontRight.getPosition(),
       SwerveSubsystem.backLeft.getPosition(), SwerveSubsystem.backRight.getPosition()
     });
-    SmartDashboard.putNumber("Robot Heading", getHeading());
+    SmartDashboard.putNumber("Robot Heading", SwerveSubsystem.getHeading());
     SmartDashboard.putString("Robot Location", getPose().getTranslation().toString());
 
-    //double targetOffsetAngle_Vertical = ty.getDouble(0.0);
+    //Auton
+    SmartDashboard.putNumber("Expected Battle Plan Duration", AutonPaths.getExpectedDuration());
 
     // how many degrees back is your limelight rotated from perfectly vertical?
     //double limelightMountAngleDegrees = 25.0;
@@ -297,6 +299,8 @@ public class Robot extends TimedRobot
   public void autonomousInit() 
   {
 
+    
+
     m_autoSelected = m_chooser.getSelected();
     System.out.println("Auto selected: " + m_autoSelected);
 
@@ -320,14 +324,30 @@ public class Robot extends TimedRobot
       case LeftScoreMob:
       AutonPaths.leftScoreMob();
         // Put custom auto code here
+        // Check if the trajectory is complete (might have to put in robot class [auton periodic at the end of the battle plan])
+     
+        /*if ( logic to check if trajectory is complete ) {
+          swerveSubsystem.stopModules();
+        }*/
+
         break;
       case MidScorePark:
       AutonPaths.midScorePark();
         // Put custom auto code here
+
+        /*if ( logic to check if trajectory is complete ) {
+          swerveSubsystem.stopModules();
+        }*/
+
         break;
       case RightScoreMob:
         AutonPaths.rightScoreMob();
         // Put default auto code here
+
+        /*if ( logic to check if trajectory is complete ) {
+          swerveSubsystem.stopModules();
+        }*/
+
         break;
     }
     
@@ -370,9 +390,9 @@ public class Robot extends TimedRobot
     *-------------------------------------------------------------------------*/
     
         // 1. Get real-time joystick inputs
-        double xSpeed = controller1.getLeftX();
+        double xSpeed = controller1.getLeftX(); //Left Joystick moves translational movement
         double ySpeed = controller1.getLeftY();
-        double rotSpeed = controller1.getRightY();
+        double rotSpeed = controller1.getRightX(); //Right Joystick moves rotation
 
         // 2. Apply deadband
         xSpeed = Math.abs(xSpeed) > Constants.kDeadband ? xSpeed : 0.0;
@@ -385,13 +405,15 @@ public class Robot extends TimedRobot
         rotSpeed = rotLimiter.calculate(rotSpeed) * Constants.kTeleDriveMaxAngularSpeedRadiansPerSecond;
 
         // 4. Construct desired chassis speeds
-        ChassisSpeeds chassisSpeeds = ChassisSpeeds.fromFieldRelativeSpeeds(xSpeed, ySpeed, rotSpeed, getRotation2d());
+        ChassisSpeeds chassisSpeeds = ChassisSpeeds.fromFieldRelativeSpeeds(xSpeed, ySpeed, rotSpeed, SwerveSubsystem.getRotation2d());
         //(Field's Perspective, "North" is the field's North)
 
+        //AIMBOT ONLY////////////////////////////////////////////////////////////////////////////////////////////
         if (aimbotEnabled){
           // Adjust only the rotational component for swerve drive
           chassisSpeeds = new ChassisSpeeds(0, 0, steering_adjust);
         }
+        //AIMBOT ONLY///////////////////////////////////////////////////////////////////////////////////////////
 
         //5. Convert chassis speeds to individual module states
         SwerveModuleState[] moduleStates = Constants.kDriveKinematics.toSwerveModuleStates(chassisSpeeds);
@@ -483,22 +505,15 @@ public class Robot extends TimedRobot
 
 
 
-  public Pose2d getPose() {
+  public static Pose2d getPose() {
     return odometer.getPoseMeters();
   }
 
   public void resetOdometry(Pose2d pose){
-    odometer.resetPosition(getRotation2d(), positions, pose);
+    odometer.resetPosition(SwerveSubsystem.getRotation2d(), positions, pose);
   }
 
-  public static double getHeading(){
-    return Math.IEEEremainder(Robot.navx.getAngle(), 360);
-}
-
-public static Rotation2d getRotation2d(){
-    return Rotation2d.fromDegrees(getHeading());
-}
-
+  
   
 
 }

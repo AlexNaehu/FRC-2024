@@ -1,12 +1,17 @@
 package frc.robot.Mechanisms;
 
+
+import edu.wpi.first.math.geometry.Rotation2d;
 //import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
+import edu.wpi.first.math.kinematics.SwerveDriveOdometry;
 //import edu.wpi.first.math.kinematics.SwerveDriveOdometry;
 //import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.robot.Robot.Constants;
 //import frc.robot.Robot.Robot;
+import frc.robot.Robot.Robot;
 
 public class SwerveSubsystem {
     
@@ -47,6 +52,29 @@ public class SwerveSubsystem {
     Constants.kBRAbsoluteEncoderReversed);
 
     
+    
+    public SwerveSubsystem(){
+        new Thread(() -> {
+            try {
+                Thread.sleep(1000);
+                zeroHeading();
+                } 
+            catch (Exception e){}
+        }).start();
+
+    }
+
+    public void zeroHeading(){
+        Robot.navx.reset();
+    }
+
+    public static double getHeading(){
+        return Math.IEEEremainder(Robot.navx.getAngle(), 360);
+    }
+    
+    public static Rotation2d getRotation2d(){
+        return Rotation2d.fromDegrees(getHeading());
+    }
 
     public void stopModules(){
         frontLeft.stop();
